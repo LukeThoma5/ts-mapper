@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { MapFrom, mappable, Mapper, Ignore, UseValue } from "./Mapper";
+import { MapFrom, mappable, Mapper, Ignore, UseValue, MapKeys } from "./Mapper";
 
 class Point {
   public constructor() {
@@ -23,7 +23,7 @@ class Point3 {
 @mappable({
   origin: new Point2(),
   targetCtor: () => new Point3(),
-  mapKey: "p2top3"
+  mapKey: MapKeys.P2ToP3
 })
 class Point2 {
   constructor() {
@@ -37,5 +37,5 @@ class Point2 {
 }
 
 const p2 = new Point2();
-const result = Mapper.PreformMap("p2top3", { x: 3, y: 15 });
+const result = Mapper.PreformMap(MapKeys.P2ToP3, { x: 3, y: 15 });
 console.log(result);
