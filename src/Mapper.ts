@@ -8,6 +8,7 @@ const DecoratorTypes = {
 
 class MapKey {
   P2ToP3: "P2ToP3" = "P2ToP3";
+  P1ToP3: "P1ToP3" = "P1ToP3";
 }
 
 export const MapKeys = new MapKey();
@@ -28,7 +29,7 @@ export function UseValue(value) {
 
 interface IMappable<TO, TT extends object> {
   origin: TO;
-  targetCtor: () => TT;
+  targetCtor?: () => TT;
   mapKey: ValidMapKey;
 }
 
@@ -51,9 +52,12 @@ export const mappable = <TO, TT extends object>({
   origin,
   targetCtor,
   mapKey
-}: IMappable<TO, TT>): ((originCtor: any) => void) => originCtor => {
+}: IMappable<TO, TT>): ((
+  defaultTargetCtor: { new (): TT }
+) => void) => defaultTargetCtor => {
   const expressions: IMappingExpression<TO, TT>[] = [];
-  const target: TT = targetCtor();
+  const targetConstructor = targetCtor || (() => new defaultTargetCtor());
+  const target: TT = targetConstructor();
 
   for (const k of Reflect.ownKeys(target)) {
     const key = k as keyof TT;
@@ -70,7 +74,7 @@ export const mappable = <TO, TT extends object>({
 
     let mapFrom: (self: TO) => any = Reflect.getMetadata(
       DecoratorTypes.MapFrom,
-      origin,
+      target,
       <string>key
     );
 
@@ -86,7 +90,7 @@ export const mappable = <TO, TT extends object>({
 
     throw "unmapped expression";
   }
-  Mapper.AddMap(mapKey, expressions, targetCtor);
+  Mapper.AddMap(mapKey, expressions, targetConstructor);
 };
 
 export namespace Mapper {

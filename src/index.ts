@@ -2,18 +2,22 @@ import "reflect-metadata";
 
 import { MapFrom, mappable, Mapper, Ignore, UseValue, MapKeys } from "./Mapper";
 
-class Point {
-  public constructor() {
+class Point2 {
+  constructor() {
     this.x = 5;
-    this.y = 3;
+    this.y = 7;
   }
-  @MapFrom(x => "hello")
   x: number;
   y: number;
 }
-const p = new Point();
 
+@mappable({
+  origin: new Point2(),
+  targetCtor: () => new Point3(),
+  mapKey: MapKeys.P2ToP3
+})
 class Point3 {
+  @MapFrom(self => self.x + 300)
   x: number = null;
   y: number = null;
   @Ignore() z: number = undefined;
@@ -22,20 +26,21 @@ class Point3 {
 
 @mappable({
   origin: new Point2(),
-  targetCtor: () => new Point3(),
-  mapKey: MapKeys.P2ToP3
+  mapKey: MapKeys.P1ToP3
 })
-class Point2 {
-  constructor() {
+class Point {
+  public constructor() {
     this.x = 5;
-    this.y = 7;
   }
 
-  @MapFrom(self => self.x + 3)
   x: number;
-  y: number;
+  @Ignore() someFunc = () => "hello";
 }
 
 const p2 = new Point2();
 const result = Mapper.PreformMap(MapKeys.P2ToP3, { x: 3, y: 15 });
 console.log(result);
+
+// const p = new Point();
+const resultOne = Mapper.PreformMap(MapKeys.P1ToP3, { x: 3, y: 15 });
+console.log(resultOne);
