@@ -3,12 +3,15 @@ import "reflect-metadata";
 const DecoratorTypes = {
   MapFrom: "MapFrom",
   Ignore: "Ignore",
-  UseValue: "UseValue"
+  UseValue: "UseValue",
+  UseMap: "UseMap"
 };
 
 class MapKey {
   P2ToP3: "P2ToP3" = "P2ToP3";
   P1ToP3: "P1ToP3" = "P1ToP3";
+  YTOJ: "YTOJ" = "YTOJ";
+  XTOZ: "XTOZ" = "XTOZ";
 }
 
 export const MapKeys = new MapKey();
@@ -25,6 +28,10 @@ export function Ignore() {
 
 export function UseValue(value) {
   return Reflect.metadata(DecoratorTypes.UseValue, value);
+}
+
+export function UseMap(mapKey: ValidMapKey) {
+  return Reflect.metadata(DecoratorTypes.UseMap, mapKey);
 }
 
 interface IMappable<TO, TT extends object> {
@@ -84,7 +91,20 @@ export const mappable = <TO, TT extends object>({
     }
 
     if (keyOfOriginAndTarget(origin, key)) {
-      expressions.push({ expression: (self: TO) => self[key], key });
+      const recursiveMapKey = Reflect.getMetadata(
+        DecoratorTypes.UseMap,
+        target,
+        <string>key
+      ) as ValidMapKey;
+      if (recursiveMapKey) {
+        expressions.push({
+          expression: (self: TO) =>
+            Mapper.PreformMap(recursiveMapKey, self[key]),
+          key
+        });
+      } else {
+        expressions.push({ expression: (self: TO) => self[key], key });
+      }
       continue;
     }
 

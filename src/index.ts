@@ -1,6 +1,14 @@
 import "reflect-metadata";
 
-import { MapFrom, mappable, Mapper, Ignore, UseValue, MapKeys } from "./Mapper";
+import {
+  MapFrom,
+  mappable,
+  Mapper,
+  Ignore,
+  UseValue,
+  MapKeys,
+  UseMap
+} from "./Mapper";
 
 class Point2 {
   constructor() {
@@ -37,10 +45,43 @@ class Point {
   @Ignore() someFunc = () => "hello";
 }
 
-const p2 = new Point2();
+class X {
+  x: number;
+  y: Y;
+}
+
+class Y {
+  field: string;
+}
+
+@mappable({
+  origin: new Y(),
+  mapKey: MapKeys.YTOJ
+})
+class J {
+  field: string;
+}
+
+@mappable({
+  origin: new X(),
+  mapKey: MapKeys.XTOZ
+})
+class Z {
+  constructor() {}
+  x: number;
+  @UseMap(MapKeys.YTOJ) y: J;
+}
+
+// const p2 = new Point2();
 const result = Mapper.PreformMap(MapKeys.P2ToP3, { x: 3, y: 15 });
 console.log(result);
 
 // const p = new Point();
 const resultOne = Mapper.PreformMap(MapKeys.P1ToP3, { x: 3, y: 15 });
 console.log(resultOne);
+
+const resultTwo = Mapper.PreformMap(MapKeys.XTOZ, {
+  x: 5,
+  y: { field: "some field" }
+});
+console.log(resultTwo);
