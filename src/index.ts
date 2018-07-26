@@ -7,7 +7,8 @@ import {
   Ignore,
   UseValue,
   MapKeys,
-  UseMap
+  UseMap,
+  MapsFrom
 } from "./Mapper";
 
 class Point2 {
@@ -67,6 +68,13 @@ class J {
   mapKey: MapKeys.XTOZ
 })
 class Z {
+  @MapFrom(self => 20)
+  @MapsFrom([
+    {
+      mapFunc: self => 10,
+      mapKey: MapKeys.YTOJ
+    }
+  ])
   x: number = null;
   @UseMap(MapKeys.YTOJ, o => o.y)
   j: J = null;

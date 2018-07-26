@@ -2,6 +2,7 @@ import "reflect-metadata";
 
 const DecoratorTypes = {
   MapFrom: "MapFrom",
+  MapFromMany: "MapFromMany",
   Ignore: "Ignore",
   UseValue: "UseValue",
   UseMap: "UseMap"
@@ -20,6 +21,12 @@ type ValidMapKey = keyof typeof MapKeys;
 
 export function MapFrom(mapFunc: (self: any) => any) {
   return Reflect.metadata(DecoratorTypes.MapFrom, mapFunc);
+}
+
+type ValidMapFroms = { mapFunc: (self: any) => any; mapKey: ValidMapKey };
+
+export function MapsFrom(maps: ValidMapFroms[]) {
+  return Reflect.metadata(DecoratorTypes.MapFromMany, maps);
 }
 
 export function Ignore() {
@@ -83,6 +90,20 @@ export const mappable = <TO, TT extends object>({
       continue;
     }
 
+    let mapsFrom: ValidMapFroms[] = Reflect.getMetadata(
+      DecoratorTypes.MapFromMany,
+      target,
+      <string>key
+    );
+
+    if (mapsFrom) {
+      const manyMapFrom = mapsFrom.find(m => m.mapKey == mapKey);
+      if (manyMapFrom) {
+        expressions.push({ expression: manyMapFrom.mapFunc, key });
+        continue;
+      }
+    }
+
     let mapFrom: (self: TO) => any = Reflect.getMetadata(
       DecoratorTypes.MapFrom,
       target,
@@ -94,9 +115,11 @@ export const mappable = <TO, TT extends object>({
       continue;
     }
 
-    const recursiveMapKey = Reflect.getMetadata(DecoratorTypes.UseMap, target, <
-      string
-    >key) as IUseMap;
+    const recursiveMapKey: IUseMap = Reflect.getMetadata(
+      DecoratorTypes.UseMap,
+      target,
+      <string>key
+    );
 
     if (recursiveMapKey && recursiveMapKey.originSelector) {
       expressions.push({
