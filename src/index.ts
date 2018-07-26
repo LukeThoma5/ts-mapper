@@ -9,7 +9,7 @@ import {
   MapKeys,
   UseMap,
   MapsFrom
-} from "./Mapper";
+} from "./Mapper/index";
 
 class Point2 {
   constructor() {
@@ -21,7 +21,7 @@ class Point2 {
 }
 
 @mappable({
-  origin: new Point2(),
+  originCtor: () => new Point2(),
   targetCtor: () => new Point3(),
   mapKey: MapKeys.P2ToP3
 })
@@ -34,7 +34,7 @@ class Point3 {
 }
 
 @mappable({
-  origin: new Point2(),
+  originCtor: () => new Point2(),
   mapKey: MapKeys.P1ToP3
 })
 class Point {
@@ -56,7 +56,7 @@ class Y {
 }
 
 @mappable({
-  origin: new Y(),
+  originCtor: () => new Y(),
   mapKey: MapKeys.YTOJ
 })
 class J {
@@ -64,7 +64,7 @@ class J {
 }
 
 @mappable({
-  origin: new X(),
+  originCtor: () => new X(),
   mapKey: MapKeys.XTOZ
 })
 class Z {
