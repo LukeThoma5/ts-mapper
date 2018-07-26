@@ -46,12 +46,12 @@ class Point {
 }
 
 class X {
-  x: number;
-  y: Y;
+  x: number = null;
+  y: Y = null;
 }
 
 class Y {
-  field: string;
+  field: string = null;
 }
 
 @mappable({
@@ -59,7 +59,7 @@ class Y {
   mapKey: MapKeys.YTOJ
 })
 class J {
-  field: string;
+  field: string = null;
 }
 
 @mappable({
@@ -67,9 +67,9 @@ class J {
   mapKey: MapKeys.XTOZ
 })
 class Z {
-  constructor() {}
-  x: number;
-  @UseMap(MapKeys.YTOJ) y: J;
+  x: number = null;
+  @UseMap(MapKeys.YTOJ, o => o.y)
+  j: J = null;
 }
 
 // const p2 = new Point2();

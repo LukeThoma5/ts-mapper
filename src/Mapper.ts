@@ -29,9 +29,13 @@ export function Ignore() {
 export function UseValue(value) {
   return Reflect.metadata(DecoratorTypes.UseValue, value);
 }
-
-export function UseMap(mapKey: ValidMapKey) {
-  return Reflect.metadata(DecoratorTypes.UseMap, mapKey);
+interface IUseMap {
+  mapKey: ValidMapKey;
+  originSelector?: (origin) => any;
+}
+export function UseMap(mapKey: ValidMapKey, originSelector?: (origin) => any) {
+  const map: IUseMap = { mapKey, originSelector };
+  return Reflect.metadata(DecoratorTypes.UseMap, map);
 }
 
 interface IMappable<TO, TT extends object> {
@@ -90,16 +94,27 @@ export const mappable = <TO, TT extends object>({
       continue;
     }
 
+    const recursiveMapKey = Reflect.getMetadata(DecoratorTypes.UseMap, target, <
+      string
+    >key) as IUseMap;
+
+    if (recursiveMapKey && recursiveMapKey.originSelector) {
+      expressions.push({
+        expression: (self: TO) =>
+          Mapper.PreformMap(
+            recursiveMapKey.mapKey,
+            recursiveMapKey.originSelector(self)
+          ),
+        key
+      });
+      continue;
+    }
+
     if (keyOfOriginAndTarget(origin, key)) {
-      const recursiveMapKey = Reflect.getMetadata(
-        DecoratorTypes.UseMap,
-        target,
-        <string>key
-      ) as ValidMapKey;
       if (recursiveMapKey) {
         expressions.push({
           expression: (self: TO) =>
-            Mapper.PreformMap(recursiveMapKey, self[key]),
+            Mapper.PreformMap(recursiveMapKey.mapKey, self[key]),
           key
         });
       } else {
@@ -108,7 +123,7 @@ export const mappable = <TO, TT extends object>({
       continue;
     }
 
-    throw "unmapped expression";
+    throw `unmapped expression ${key}`;
   }
   Mapper.AddMap(mapKey, expressions, targetConstructor);
 };
