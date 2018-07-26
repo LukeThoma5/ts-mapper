@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { MapKeys, ValidMapKey } from "./MapKeys";
 
 import { DecoratorTypes } from "./DecoratorTypes";
-import { ValidMapFroms } from "./MapFrom";
+import { ValidMapFroms, AttemptMapFrom } from "./MapFrom";
 
 export function Ignore() {
   return Reflect.metadata(DecoratorTypes.Ignore, true);
@@ -30,7 +30,7 @@ interface IStoredMappable<TO, TT extends object> extends IMappable<TO, TT> {
   defaultTargetCtor: { new (): TT };
 }
 
-interface IMappingExpression<TO, TT> {
+export interface IMappingExpression<TO, TT> {
   expression: (self: TO) => any;
   key: keyof TT;
 }
@@ -85,6 +85,16 @@ export namespace Mapper {
 
     for (const k of Reflect.ownKeys(target)) {
       const key = k as keyof TT;
+
+      // const mappingExpressions = [AttemptMapFrom];
+      // for (const mappingExpression of mappingExpressions) {
+      //   let expression = mappingExpression(target, key, mapKey);
+      //   if (expression) {
+      //     expressions.push(expression);
+      //     continue;
+      //   }
+      // }
+
       if (isIgnored(target, key)) continue;
 
       const useValue = Reflect.getMetadata(DecoratorTypes.UseValue, target, <
@@ -96,28 +106,9 @@ export namespace Mapper {
         continue;
       }
 
-      let mapsFrom: ValidMapFroms[] = Reflect.getMetadata(
-        DecoratorTypes.MapFromMany,
-        target,
-        <string>key
-      );
-
-      if (mapsFrom) {
-        const manyMapFrom = mapsFrom.find(m => m.mapKey == mapKey);
-        if (manyMapFrom) {
-          expressions.push({ expression: manyMapFrom.mapFunc, key });
-          continue;
-        }
-      }
-
-      let mapFrom: (self: TO) => any = Reflect.getMetadata(
-        DecoratorTypes.MapFrom,
-        target,
-        <string>key
-      );
-
-      if (mapFrom) {
-        expressions.push({ expression: mapFrom, key });
+      let mapFromExpression = AttemptMapFrom(target, key, mapKey);
+      if (mapFromExpression) {
+        expressions.push(mapFromExpression);
         continue;
       }
 

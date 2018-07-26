@@ -72,7 +72,7 @@ class Z {
   @MapsFrom([
     {
       mapFunc: self => 10,
-      mapKey: MapKeys.YTOJ
+      mapKey: MapKeys.XTOZ
     }
   ])
   x: number = null;
