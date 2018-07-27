@@ -15,7 +15,7 @@ npm install
 npm start
 ```
 
-## Example use
+## Example Definition
 
 ```typescript
 // Classes to be mapped from
@@ -66,3 +66,26 @@ class Z {
   @UseValue("Hello world!") k: string = null;
 }
 ```
+
+### Example use
+
+```typescript
+const newZ = Mapper.PreformMap(MapKeys.XTOZ, {
+  x: 5,
+  y: { field: "some field" }
+});
+```
+
+#### Features
+
+- Automap same properties
+- Ignore properties eg functions
+- Use a value while mapping
+- Custom mapping function (mapFrom)
+- Recursive mapping
+- Lazy expression creation (on first use)
+
+### Wishlist
+
+- Less boilerplate for MapKeys
+- Plural versions of more decorators for finer control
