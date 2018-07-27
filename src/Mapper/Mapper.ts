@@ -3,25 +3,12 @@ import { MapKeys, ValidMapKey } from "./MapKeys";
 
 import { DecoratorTypes } from "./DecoratorTypes";
 import { ValidMapFroms, AttemptMapFrom } from "./MapFrom";
-
-export function Ignore() {
-  return Reflect.metadata(DecoratorTypes.Ignore, true);
-}
-
-export function UseValue(value) {
-  return Reflect.metadata(DecoratorTypes.UseValue, value);
-}
-interface IUseMap {
-  mapKey: ValidMapKey;
-  originSelector?: (origin) => any;
-}
-export function UseMap(mapKey: ValidMapKey, originSelector?: (origin) => any) {
-  const map: IUseMap = { mapKey, originSelector };
-  return Reflect.metadata(DecoratorTypes.UseMap, map);
-}
+import { AttemptUseValue } from "./UseValue";
+import { AttemptAutoMap, AttemptUseMap } from "./UseMap";
+import { isIgnored } from "./Ignore";
 
 interface IMappable<TO, TT extends object> {
-  originCtor: () => TO;
+  origin: () => TO;
   targetCtor?: () => TT;
   mapKey: ValidMapKey;
 }
@@ -35,24 +22,14 @@ export interface IMappingExpression<TO, TT> {
   key: keyof TT;
 }
 
-const isIgnored = <TT>(target: TT, key: keyof TT): boolean =>
-  Reflect.getMetadata(DecoratorTypes.Ignore, target, <string>key);
-
-const keyOfOriginAndTarget = <TO, TT>(
-  origin: TO,
-  key: any
-): key is keyof TO => {
-  return key in origin;
-};
-
-export const mappable = <TO, TT extends object>({
-  originCtor,
+export const Mappable = <TO, TT extends object>({
+  origin,
   targetCtor,
   mapKey
 }: IMappable<TO, TT>): ((
   defaultTargetCtor: { new (): TT }
 ) => void) => defaultTargetCtor => {
-  Mapper.DefineMap({ originCtor, targetCtor, mapKey, defaultTargetCtor });
+  Mapper.DefineMap({ origin, targetCtor, mapKey, defaultTargetCtor });
 };
 
 export namespace Mapper {
@@ -75,75 +52,32 @@ export namespace Mapper {
   export const CreateMappingExpression = <TO, TT extends object>(
     validMapKey: ValidMapKey
   ) => {
-    const { defaultTargetCtor, mapKey, originCtor, targetCtor } = DefinedMap[
+    const { defaultTargetCtor, mapKey, origin, targetCtor } = DefinedMap[
       validMapKey
     ];
     const expressions: IMappingExpression<TO, TT>[] = [];
     const targetConstructor = targetCtor || (() => new defaultTargetCtor());
     const target: TT = targetConstructor();
-    const origin: TO = originCtor();
+    const originInstance: TO = origin();
 
-    for (const k of Reflect.ownKeys(target)) {
+    keyLoop: for (const k of Reflect.ownKeys(target)) {
       const key = k as keyof TT;
-
-      // const mappingExpressions = [AttemptMapFrom];
-      // for (const mappingExpression of mappingExpressions) {
-      //   let expression = mappingExpression(target, key, mapKey);
-      //   if (expression) {
-      //     expressions.push(expression);
-      //     continue;
-      //   }
-      // }
-
       if (isIgnored(target, key)) continue;
-
-      const useValue = Reflect.getMetadata(DecoratorTypes.UseValue, target, <
-        string
-      >key);
-
-      if (useValue != undefined) {
-        expressions.push({ expression: (self: TO) => useValue, key });
-        continue;
-      }
-
-      let mapFromExpression = AttemptMapFrom(target, key, mapKey);
-      if (mapFromExpression) {
-        expressions.push(mapFromExpression);
-        continue;
-      }
-
-      const recursiveMapKey: IUseMap = Reflect.getMetadata(
-        DecoratorTypes.UseMap,
-        target,
-        <string>key
-      );
-
-      if (recursiveMapKey && recursiveMapKey.originSelector) {
-        expressions.push({
-          expression: (self: TO) =>
-            Mapper.PreformMap(
-              recursiveMapKey.mapKey,
-              recursiveMapKey.originSelector(self)
-            ),
-          key
-        });
-        continue;
-      }
-
-      if (keyOfOriginAndTarget(origin, key)) {
-        if (recursiveMapKey) {
-          expressions.push({
-            expression: (self: TO) =>
-              Mapper.PreformMap(recursiveMapKey.mapKey, self[key]),
-            key
-          });
-        } else {
-          expressions.push({ expression: (self: TO) => self[key], key });
+      const mappingExpressions = [
+        AttemptUseValue,
+        AttemptMapFrom,
+        AttemptUseMap,
+        AttemptAutoMap
+      ];
+      for (const mappingExpression of mappingExpressions) {
+        let expression = mappingExpression(originInstance, target, key, mapKey);
+        if (expression) {
+          expressions.push(expression);
+          continue keyLoop;
         }
-        continue;
       }
 
-      throw `unmapped expression ${key}`;
+      throw `unmapped expression ${mapKey} ${key}`;
     }
     Mapper.AddMap(mapKey, expressions, targetConstructor);
   };
@@ -156,7 +90,7 @@ export namespace Mapper {
 
   export const PreformMap = <TO, TT>(
     mapKey: ValidMapKey,
-    originalObject: TO,
+    origin: TO,
     target: TT = undefined
   ): TT => {
     let map = KnownMaps[mapKey];
@@ -172,7 +106,7 @@ export namespace Mapper {
     if (target == undefined) target = map.targetCtor();
 
     map.expressions.forEach(({ expression, key }) => {
-      target[key] = expression(originalObject);
+      target[key] = expression(origin);
     });
     return target;
   };

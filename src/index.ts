@@ -2,7 +2,7 @@ import "reflect-metadata";
 
 import {
   MapFrom,
-  mappable,
+  Mappable,
   Mapper,
   Ignore,
   UseValue,
@@ -20,8 +20,8 @@ class Point2 {
   y: number;
 }
 
-@mappable({
-  originCtor: () => new Point2(),
+@Mappable({
+  origin: () => new Point2(),
   targetCtor: () => new Point3(),
   mapKey: MapKeys.P2ToP3
 })
@@ -33,8 +33,8 @@ class Point3 {
   @UseValue("hello") q: string = undefined;
 }
 
-@mappable({
-  originCtor: () => new Point2(),
+@Mappable({
+  origin: () => new Point2(),
   mapKey: MapKeys.P1ToP3
 })
 class Point {
@@ -55,16 +55,16 @@ class Y {
   field: string = null;
 }
 
-@mappable({
-  originCtor: () => new Y(),
+@Mappable({
+  origin: () => new Y(),
   mapKey: MapKeys.YTOJ
 })
 class J {
   field: string = null;
 }
 
-@mappable({
-  originCtor: () => new X(),
+@Mappable({
+  origin: () => new X(),
   mapKey: MapKeys.XTOZ
 })
 class Z {
@@ -76,7 +76,7 @@ class Z {
     }
   ])
   x: number = null;
-  @UseMap(MapKeys.YTOJ, o => o.y)
+  @UseMap(MapKeys.YTOJ, (o: X) => o.y)
   j: J = null;
 }
 

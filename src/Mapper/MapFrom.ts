@@ -16,6 +16,7 @@ export function MapsFrom(maps: ValidMapFroms[]) {
 }
 
 export function AttemptMapFrom<TO, TT>(
+  origin: TO,
   target: TT,
   key: keyof TT,
   mapKey: ValidMapKey
