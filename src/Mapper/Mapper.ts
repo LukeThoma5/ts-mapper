@@ -8,7 +8,7 @@ import { AttemptAutoMap, AttemptUseMap } from "./UseMap";
 import { isIgnored } from "./Ignore";
 
 interface IMappable<TO, TT extends object> {
-  originCtor: () => TO;
+  origin: () => TO;
   targetCtor?: () => TT;
   mapKey: ValidMapKey;
 }
@@ -22,14 +22,14 @@ export interface IMappingExpression<TO, TT> {
   key: keyof TT;
 }
 
-export const mappable = <TO, TT extends object>({
-  originCtor,
+export const Mappable = <TO, TT extends object>({
+  origin,
   targetCtor,
   mapKey
 }: IMappable<TO, TT>): ((
   defaultTargetCtor: { new (): TT }
 ) => void) => defaultTargetCtor => {
-  Mapper.DefineMap({ originCtor, targetCtor, mapKey, defaultTargetCtor });
+  Mapper.DefineMap({ origin, targetCtor, mapKey, defaultTargetCtor });
 };
 
 export namespace Mapper {
@@ -52,30 +52,28 @@ export namespace Mapper {
   export const CreateMappingExpression = <TO, TT extends object>(
     validMapKey: ValidMapKey
   ) => {
-    const { defaultTargetCtor, mapKey, originCtor, targetCtor } = DefinedMap[
+    const { defaultTargetCtor, mapKey, origin, targetCtor } = DefinedMap[
       validMapKey
     ];
     const expressions: IMappingExpression<TO, TT>[] = [];
     const targetConstructor = targetCtor || (() => new defaultTargetCtor());
     const target: TT = targetConstructor();
-    const origin: TO = originCtor();
+    const originInstance: TO = origin();
 
-    for (const k of Reflect.ownKeys(target)) {
+    keyLoop: for (const k of Reflect.ownKeys(target)) {
       const key = k as keyof TT;
-      console.log(mapKey == MapKeys.P2ToP3);
-      if (mapKey == MapKeys.P2ToP3) debugger;
       if (isIgnored(target, key)) continue;
       const mappingExpressions = [
-        AttemptMapFrom,
         AttemptUseValue,
+        AttemptMapFrom,
         AttemptUseMap,
         AttemptAutoMap
       ];
       for (const mappingExpression of mappingExpressions) {
-        let expression = mappingExpression(origin, target, key, mapKey);
+        let expression = mappingExpression(originInstance, target, key, mapKey);
         if (expression) {
           expressions.push(expression);
-          continue;
+          continue keyLoop;
         }
       }
 
@@ -92,7 +90,7 @@ export namespace Mapper {
 
   export const PreformMap = <TO, TT>(
     mapKey: ValidMapKey,
-    originalObject: TO,
+    origin: TO,
     target: TT = undefined
   ): TT => {
     let map = KnownMaps[mapKey];
@@ -108,7 +106,7 @@ export namespace Mapper {
     if (target == undefined) target = map.targetCtor();
 
     map.expressions.forEach(({ expression, key }) => {
-      target[key] = expression(originalObject);
+      target[key] = expression(origin);
     });
     return target;
   };

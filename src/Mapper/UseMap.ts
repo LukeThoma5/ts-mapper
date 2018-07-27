@@ -3,12 +3,15 @@ import { ValidMapKey } from "./MapKeys";
 import { IMappingExpression, Mapper } from "./Mapper";
 import { keyOfOriginAndTarget } from "./Utils";
 
-export interface IUseMap {
+export interface IUseMap<TO> {
   mapKey: ValidMapKey;
-  originSelector?: (origin) => any;
+  originSelector?: (origin: TO) => any;
 }
-export function UseMap(mapKey: ValidMapKey, originSelector?: (origin) => any) {
-  const map: IUseMap = { mapKey, originSelector };
+export function UseMap<TO>(
+  mapKey: ValidMapKey,
+  originSelector?: (origin: TO) => any
+) {
+  const map: IUseMap<TO> = { mapKey, originSelector };
   return Reflect.metadata(DecoratorTypes.UseMap, map);
 }
 
@@ -18,19 +21,20 @@ export function AttemptUseMap<TO, TT>(
   key: keyof TT,
   mapKey: ValidMapKey
 ): IMappingExpression<TO, TT> {
-  const recursiveMapKey: IUseMap = Reflect.getMetadata(
+  const recursiveMapKey: IUseMap<TO> = Reflect.getMetadata(
     DecoratorTypes.UseMap,
     target,
     <string>key
   );
 
+  const mapFactory = (originSelector: (origin: TO) => any) => (self: TO) => {
+    const origin = originSelector(self);
+    return origin ? Mapper.PreformMap(recursiveMapKey.mapKey, origin) : null;
+  };
+
   if (recursiveMapKey && recursiveMapKey.originSelector) {
     return {
-      expression: (self: TO) =>
-        Mapper.PreformMap(
-          recursiveMapKey.mapKey,
-          recursiveMapKey.originSelector(self)
-        ),
+      expression: mapFactory(recursiveMapKey.originSelector),
       key
     };
   }
@@ -38,8 +42,7 @@ export function AttemptUseMap<TO, TT>(
   if (keyOfOriginAndTarget(origin, key)) {
     if (recursiveMapKey) {
       return {
-        expression: (self: TO) =>
-          Mapper.PreformMap(recursiveMapKey.mapKey, self[key]),
+        expression: mapFactory(self => self[key]),
         key
       };
     }
